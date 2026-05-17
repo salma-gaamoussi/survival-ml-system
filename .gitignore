@@ -209,6 +209,10 @@ tempCodeRunnerFile.py
 # PyPI configuration file
 .pypirc
 
+# Trained model artifacts (regenerate with: make train)
+models/*.pkl
+models/*.pt
+
 # Marimo
 marimo/_static/
 marimo/_lsp/
