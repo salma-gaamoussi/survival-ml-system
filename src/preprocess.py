@@ -4,8 +4,8 @@ from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer
 
 NUMERIC_COLS = [
-    "MonthlyCharges", "TotalCharges",
-    "charge_per_tenure", "total_monthly_ratio"    # engineered
+    "MonthlyCharges",
+    "charge_per_tenure",
 ]
 CATEGORICAL_COLS = [
     "gender", "SeniorCitizen", "Partner", "Dependents",

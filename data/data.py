@@ -19,7 +19,6 @@ CATEGORICAL_COLS = [
 
 def load_data(path: str):
     df = pd.read_csv(path)
-    print("Test")
     # TotalCharges has stray spaces — fix before casting
     df["TotalCharges"] = pd.to_numeric(df["TotalCharges"], errors="coerce")
     df = df.dropna(subset=["TotalCharges"])
