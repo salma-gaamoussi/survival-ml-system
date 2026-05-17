@@ -4,6 +4,7 @@ Run from the project root:
     python src/train.py --data-path data/WA_Fn-UseC_-Telco-Customer-Churn.csv
 """
 import argparse
+import json
 import os
 import sys
 
@@ -14,9 +15,9 @@ import joblib
 from data.data import load_data, split_data
 from src.features import add_features
 from src.preprocess import build_preprocessor
-from src.evaluate import score_model
+from src.evaluate import score_model, compute_ibs
 from models.km_cox import fit_kaplan_meier, fit_cox, c_index
-from models.rsf import fit_rsf, integrated_brier
+from models.rsf import fit_rsf
 from models.deepsurv import train_deepsurv, predict_risk
 
 
@@ -52,7 +53,7 @@ def main(data_path: str):
     print("\n--- Random Survival Forest ---")
     rsf = fit_rsf(X_train_pre, y_train)
     rsf_ci = c_index(rsf, X_test_pre, y_test)
-    ibs    = integrated_brier(rsf, X_test_pre, y_train, y_test)
+    ibs    = compute_ibs(rsf, X_test_pre, y_train, y_test)
     print(f"  C-index: {rsf_ci:.3f}  |  IBS: {ibs:.4f}")
     joblib.dump(rsf, "models/rsf.pkl")
 
@@ -66,11 +67,22 @@ def main(data_path: str):
     print(f"  Cox PH    C-index : {cox_ci:.3f}")
     print(f"  RSF       C-index : {rsf_ci:.3f}  |  IBS : {ibs:.4f}")
     print(f"  DeepSurv  C-index : {ds_ci:.3f}")
+
+    results = {
+        "cox_cindex":      round(float(cox_ci), 4),
+        "rsf_cindex":      round(float(rsf_ci), 4),
+        "rsf_ibs":         round(float(ibs),    4),
+        "deepsurv_cindex": round(float(ds_ci),  4),
+    }
+    with open("results.json", "w") as f:
+        json.dump(results, f, indent=2)
+
     print("\nArtifacts saved:")
     print("  models/preprocessor.pkl")
     print("  models/rsf.pkl")
     print("  models/deepsurv.pt")
     print("  notebooks/km_curve.png")
+    print("  results.json")
 
 
 if __name__ == "__main__":

@@ -1,12 +1,24 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from pydantic import BaseModel
-import joblib, numpy as np, pandas as pd
+import joblib, numpy as np, pandas as pd, os
 
-app = FastAPI(title="Survival Analysis API")
+models = {}
 
-# load best model (RSF — it supports survival function prediction)
-rsf = joblib.load("models/rsf.pkl")
-pre = joblib.load("models/preprocessor.pkl")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    for name, path in [("rsf", "models/rsf.pkl"), ("pre", "models/preprocessor.pkl")]:
+        if not os.path.exists(path):
+            raise RuntimeError(
+                f"Model artifact '{path}' not found. Run 'make train' first."
+            )
+        models[name] = joblib.load(path)
+    yield
+    models.clear()
+
+
+app = FastAPI(title="Survival Analysis API", lifespan=lifespan)
 
 
 class CustomerFeatures(BaseModel):
@@ -43,16 +55,17 @@ def health():
 def predict(customer: CustomerFeatures):
     from src.features import add_features
 
+    rsf = models["rsf"]
+    pre = models["pre"]
+
     df = pd.DataFrame([customer.model_dump()])
     df = add_features(df)
     X_pre = pre.transform(df)
 
-    # survival function for this customer
     surv_fn = rsf.predict_survival_function(X_pre)[0]
     times   = surv_fn.x
     probs   = np.array([surv_fn(t) for t in times])
 
-    # median: first time where survival drops below 0.5
     below = times[probs <= 0.5]
     median_ttc = float(below[0]) if len(below) > 0 else float(times[-1])
 
